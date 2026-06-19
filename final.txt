@@ -1,0 +1,398 @@
+#include "Adafruit_TinyUSB.h"
+
+Adafruit_USBD_HID usb_hid;
+
+// Report IDs
+#define RID_KEYBOARD 1
+#define RID_CONSUMER 2
+
+uint8_t const desc_hid_report[] = {
+  TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(RID_KEYBOARD)),
+  TUD_HID_REPORT_DESC_CONSUMER(HID_REPORT_ID(RID_CONSUMER))
+};
+
+#define CHROME  1
+#define MUTE_BTN 4
+#define CLK 2
+#define DT 3
+
+#define PLAY_PAUSE 0
+#define NEXT_TRACK 5
+#define PREV_TRACK 6
+#define MIC_MUTE 7
+
+#define SPOTIFY 8
+#define YOUTUBE 9
+#define LEETCODE 10
+
+bool lastChrome = HIGH;
+bool lastMute = HIGH;
+bool lastCLK = HIGH;
+bool lastPlay = HIGH;
+bool lastNext = HIGH;
+bool lastPrev = HIGH;
+bool lastMic = HIGH;
+bool lastSpotify=HIGH;
+bool lastYoutube = HIGH;
+bool lastLeetcode = HIGH;
+
+
+void setup() {
+  pinMode(CHROME, INPUT_PULLUP);
+  pinMode(MUTE_BTN, INPUT_PULLUP);
+  pinMode(CLK, INPUT_PULLUP);
+  pinMode(DT, INPUT_PULLUP);
+  pinMode(PLAY_PAUSE, INPUT_PULLUP);
+  pinMode(NEXT_TRACK, INPUT_PULLUP);
+  pinMode(PREV_TRACK, INPUT_PULLUP);
+  pinMode(MIC_MUTE, INPUT_PULLUP);
+  pinMode(SPOTIFY, INPUT_PULLUP);
+  pinMode(YOUTUBE, INPUT_PULLUP);
+  pinMode(LEETCODE, INPUT_PULLUP);
+  
+
+  lastCLK = digitalRead(CLK);
+
+  usb_hid.setReportDescriptor(desc_hid_report,
+                              sizeof(desc_hid_report));
+
+  usb_hid.begin();
+
+  delay(3000);
+}
+
+//TYPYING FUNCTION
+void sendKey(uint8_t modifier, uint8_t key) { 
+  uint8_t keycode[6] = { key };
+
+  usb_hid.keyboardReport(RID_KEYBOARD, modifier, keycode);
+  delay(50);
+
+  usb_hid.keyboardRelease(RID_KEYBOARD);
+  delay(50);
+}
+//TYPYING FINCTION
+void typeString(const char *str) {
+  while (*str) {
+    char c = *str++;
+
+    uint8_t modifier = 0;
+    uint8_t key = 0;
+
+    if (c >= 'a' && c <= 'z') {
+      key = HID_KEY_A + (c - 'a');
+    }
+    else if (c >= 'A' && c <= 'Z') {
+      modifier = KEYBOARD_MODIFIER_LEFTSHIFT;
+      key = HID_KEY_A + (c - 'A');
+    }
+    else if (c >= '1' && c <= '9') {
+      key = HID_KEY_1 + (c - '1');
+    }
+    else if (c == '0') {
+      key = HID_KEY_0;
+    }
+    else if (c == '.') {
+      key = HID_KEY_PERIOD;
+    }
+    else if (c == '/') {
+      key = HID_KEY_SLASH;
+    }
+    else if (c == '-') {
+      key = HID_KEY_MINUS;
+    }
+    else if (c == '_') {
+      modifier = KEYBOARD_MODIFIER_LEFTSHIFT;
+      key = HID_KEY_MINUS;
+    }
+    else if (c == ':') {
+      modifier = KEYBOARD_MODIFIER_LEFTSHIFT;
+      key = HID_KEY_SEMICOLON;
+    }
+    else if (c == ' ') {
+      key = HID_KEY_SPACE;
+    }
+    else {
+      continue;
+    }
+
+    uint8_t keycode[6] = { key };
+
+    usb_hid.keyboardReport(RID_KEYBOARD, modifier, keycode);
+    delay(20);
+
+    usb_hid.keyboardRelease(RID_KEYBOARD);
+    delay(20);
+  }
+}
+
+//CHROME FUNCTION
+void openChrome() {
+
+  // Win + R
+  sendKey(KEYBOARD_MODIFIER_LEFTGUI, HID_KEY_R);
+
+  delay(500);
+
+  // Type chrome
+  typeString("chrome");
+
+  delay(100);
+
+  // Enter
+  sendKey(0, HID_KEY_ENTER);
+}
+
+//SPOTIFY FUNCTION
+void openSpotify() {
+
+  // Win + R
+  sendKey(KEYBOARD_MODIFIER_LEFTGUI, HID_KEY_R);
+
+  delay(500);
+
+  // Type url
+  typeString("https://open.spotify.com/");
+
+  delay(100);
+
+  // Enter
+  sendKey(0, HID_KEY_ENTER);
+}
+
+//YOUTUBE FUNCTION
+void openYoutube() {
+
+  // Win + R
+  sendKey(KEYBOARD_MODIFIER_LEFTGUI, HID_KEY_R);
+
+  delay(500);
+
+  // Type url
+  typeString("https://www.youtube.com/");
+
+  delay(100);
+
+  // Enter
+  sendKey(0, HID_KEY_ENTER);
+}
+
+//LEETCODE FUNCTION
+void openLeetcode() {
+
+  // Win + R
+  sendKey(KEYBOARD_MODIFIER_LEFTGUI, HID_KEY_R);
+
+  delay(500);
+
+  // Type url
+  typeString("https://leetcode.com/u/Ritesh_Tikader/");
+
+  delay(100);
+
+  // Enter
+  sendKey(0, HID_KEY_ENTER);
+}
+
+//OUTPUT MUTE
+void mutePC() {
+  usb_hid.sendReport16(RID_CONSUMER,
+                       HID_USAGE_CONSUMER_MUTE);
+
+  delay(20);
+
+  usb_hid.sendReport16(RID_CONSUMER, 0);
+}
+
+//VOLUME++
+void sendVolumeUp() {
+  uint16_t key = HID_USAGE_CONSUMER_VOLUME_INCREMENT;
+  usb_hid.sendReport16(RID_CONSUMER, key);
+  delay(5);
+  usb_hid.sendReport16(RID_CONSUMER, 0);
+}
+
+
+//VOLUME--
+void sendVolumeDown() {
+  uint16_t key = HID_USAGE_CONSUMER_VOLUME_DECREMENT;
+  usb_hid.sendReport16(RID_CONSUMER, key);
+  delay(5);
+  usb_hid.sendReport16(RID_CONSUMER, 0);
+}
+
+//PLAY/PAUSE
+void playPause() {
+  usb_hid.sendReport16(
+    RID_CONSUMER,
+    HID_USAGE_CONSUMER_PLAY_PAUSE
+  );
+
+  delay(20);
+
+  usb_hid.sendReport16(
+    RID_CONSUMER,
+    0
+  );
+}
+
+//NEXT TRACK
+void nextTrack() {
+  usb_hid.sendReport16(
+    RID_CONSUMER,
+    HID_USAGE_CONSUMER_SCAN_NEXT_TRACK //HID_USAGE_CONSUMER_SCAN_NEXT_TRACK (IF NOT WORKED)
+  );
+
+  delay(20);
+
+  usb_hid.sendReport16(
+    RID_CONSUMER,
+    0
+  );
+}
+
+//PREV TRACK
+void previousTrack() {
+  usb_hid.sendReport16(
+    RID_CONSUMER,
+    HID_USAGE_CONSUMER_SCAN_PREVIOUS_TRACK //HID_USAGE_CONSUMER_SCAN_PREVIOUS_TRACK (IF NOT WORKED)
+  );
+
+  delay(20);
+
+  usb_hid.sendReport16(
+    RID_CONSUMER,
+    0
+  );
+}
+
+//MIC MUTE
+void muteMeetingApp() {
+
+  // Google Meet
+  sendKey(KEYBOARD_MODIFIER_LEFTCTRL, HID_KEY_D);
+  delay(100);
+
+  // Teams
+  uint8_t keycode[6] = { HID_KEY_M };
+  usb_hid.keyboardReport(
+    RID_KEYBOARD,
+    KEYBOARD_MODIFIER_LEFTCTRL | KEYBOARD_MODIFIER_LEFTSHIFT,
+    keycode
+  );
+  delay(50);
+  usb_hid.keyboardRelease(RID_KEYBOARD);
+
+  delay(100);
+
+  // Zoom
+  sendKey(KEYBOARD_MODIFIER_LEFTALT, HID_KEY_A);
+}
+void loop() {
+  //chrome
+  bool chromeState = digitalRead(CHROME);
+
+  if (lastChrome == HIGH && chromeState == LOW) {
+    openChrome();
+    delay(300);
+  }
+
+  lastChrome = chromeState;
+
+  //SPOTIFY
+  bool spotifyState = digitalRead(SPOTIFY);
+
+  if (lastSpotify == HIGH && spotifyState == LOW) {
+    openSpotify();
+    delay(300);
+  }
+
+  lastSpotify = spotifyState;
+
+  //YOUTUBE
+  bool youtubeState = digitalRead(YOUTUBE);
+
+  if (lastYoutube == HIGH && youtubeState == LOW) {
+    openYoutube();
+    delay(300);
+  }
+
+  lastYoutube = youtubeState;
+
+  //LEETCODE
+  bool leetcodeState = digitalRead(LEETCODE);
+
+  if (lastLeetcode == HIGH && leetcodeState == LOW) {
+    openLeetcode();
+    delay(300);
+  }
+
+  lastLeetcode = leetcodeState;
+
+  //mute
+  bool muteState = digitalRead(MUTE_BTN);
+
+  if (lastMute == HIGH && muteState == LOW) {
+    mutePC();
+    delay(300);
+  }
+
+  lastMute = muteState;
+
+  //volume
+  int currentCLK = digitalRead(CLK);
+
+  if (currentCLK != lastCLK && currentCLK == LOW) {
+
+    if (digitalRead(DT) != currentCLK) {
+      sendVolumeUp();      // Clockwise
+    } else {
+      sendVolumeDown();    // Counter-clockwise
+    }
+
+    delay(30); // debounce
+  }
+
+  lastCLK = currentCLK;
+
+  //PLAY/PAUSE
+  bool playState = digitalRead(PLAY_PAUSE);
+
+  if (lastPlay == HIGH && playState == LOW) {
+    playPause();
+    delay(300);
+  }
+
+  lastPlay = playState;
+
+  //NEXT TRACK
+  bool nextState = digitalRead(NEXT_TRACK);
+
+  if (lastNext == HIGH && nextState == LOW) {
+    nextTrack();
+    delay(300);
+  }
+
+  lastNext = nextState;
+
+  //PREV TRACK
+  bool prevState = digitalRead(PREV_TRACK);
+
+  if (lastPrev == HIGH && prevState == LOW) {
+    previousTrack();
+    delay(300);
+  }
+
+  lastPrev = prevState;
+
+  //MIC MUTE
+  bool micState = digitalRead(MIC_MUTE);
+
+  if (lastMic == HIGH && micState == LOW) {
+    muteMeetingApp();
+    delay(300);
+  }
+
+  lastMic = micState;
+
+}
